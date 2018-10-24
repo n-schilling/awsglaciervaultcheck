@@ -1,0 +1,46 @@
+plugins:
+  - serverless-plugin-tracing
+
+service: awsglaciervaultcheck
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: dev
+  region: eu-central-1
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "glacier:ListVaults"
+        - "glacier:GetVaultAccessPolicy"
+        - "glacier:GetVaultLock"
+      Resource: '*'
+  iamManagedPolicies:
+    - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+  tracing: true
+  apiKeys:
+    - AwsGlacierVaultCheckKey
+  usagePlan:
+    quota:
+      limit: 100
+      offset: 2
+      period: MONTH
+    throttle:
+      burstLimit: 20
+      rateLimit: 10
+
+functions:
+  awsglaciervaultcheck:
+    handler: handler.awsglaciervaultcheck
+    description: Main function to check the status of a glacier vault
+    memorySize: 128
+    timeout: 30
+    environment:
+      vaultAccessPolicy: '<<YOUR ACCESS POLICY>>'
+      vaultLockPolicy: '<<YOUR LOCK POLICY>>'
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
+          private: true
